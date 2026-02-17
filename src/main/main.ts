@@ -253,6 +253,9 @@ let globalShortcutRegistrationState: {
   activeShortcut: '',
   ok: true,
 };
+const OPENING_SHORTCUT_SUPPRESSION_MS = 220;
+let openingShortcutSuppressionUntil = 0;
+let openingShortcutToSuppress = '';
 type AppUpdaterState =
   | 'idle'
   | 'unsupported'
@@ -1660,18 +1663,21 @@ function getRecentSelectionSnapshot(): string {
   return lastLauncherSelectionSnapshot;
 }
 
-async function captureSelectionSnapshotBeforeShow(): Promise<void> {
+async function captureSelectionSnapshotBeforeShow(options?: { allowClipboardFallback?: boolean }): Promise<string> {
   if (launcherMode !== 'default') {
     rememberSelectionSnapshot('');
-    return;
+    return '';
   }
+  const allowClipboardFallback = options?.allowClipboardFallback === true;
   try {
     const selected = String(
-      await getSelectedTextForSpeak({ allowClipboardFallback: true, clipboardWaitMs: 90 }) || ''
+      await getSelectedTextForSpeak({ allowClipboardFallback, clipboardWaitMs: 90 }) || ''
     );
     rememberSelectionSnapshot(selected);
+    return getRecentSelectionSnapshot();
   } catch {
     rememberSelectionSnapshot('');
+    return '';
   }
 }
 
@@ -1747,6 +1753,54 @@ function normalizeAccelerator(shortcut: string): string {
     parts[parts.length - 1] = '.';
   }
   return parts.join('+');
+}
+
+function normalizeShortcutKeyToken(token: string): string {
+  const value = String(token || '').trim().toLowerCase();
+  if (!value) return '';
+  if (value === 'space' || value === 'spacebar') return 'space';
+  if (value === 'period') return '.';
+  return value;
+}
+
+function normalizeInputKeyToken(input: any): string {
+  const rawKey = String(input?.key || '').toLowerCase();
+  if (rawKey === ' ' || rawKey === 'spacebar') return 'space';
+  if (rawKey) return rawKey;
+  const rawCode = String(input?.code || '').toLowerCase();
+  if (rawCode === 'space') return 'space';
+  return '';
+}
+
+function markOpeningShortcutForSuppression(shortcut: string): void {
+  openingShortcutToSuppress = normalizeAccelerator(shortcut);
+  openingShortcutSuppressionUntil = Date.now() + OPENING_SHORTCUT_SUPPRESSION_MS;
+}
+
+function shouldSuppressOpeningShortcutInput(input: any): boolean {
+  if (Date.now() > openingShortcutSuppressionUntil) return false;
+  const shortcut = String(openingShortcutToSuppress || '').trim();
+  if (!shortcut) return false;
+  const parts = shortcut.split('+').map((part) => String(part || '').trim()).filter(Boolean);
+  if (parts.length === 0) return false;
+  const keyToken = normalizeShortcutKeyToken(parts[parts.length - 1]);
+  if (!keyToken) return false;
+  const mods = new Set(parts.slice(0, -1).map((part) => String(part || '').trim().toLowerCase()));
+  const expectMeta = mods.has('command') || mods.has('cmd') || mods.has('meta') || mods.has('super') || mods.has('commandorcontrol') || mods.has('cmdorctrl');
+  const expectCtrl = mods.has('control') || mods.has('ctrl') || (process.platform !== 'darwin' && (mods.has('commandorcontrol') || mods.has('cmdorctrl')));
+  const expectAlt = mods.has('alt') || mods.has('option');
+  const expectShift = mods.has('shift');
+  const actualKey = normalizeInputKeyToken(input);
+  const actualMeta = Boolean(input?.meta);
+  const actualCtrl = Boolean(input?.control);
+  const actualAlt = Boolean(input?.alt);
+  const actualShift = Boolean(input?.shift);
+  if (actualKey !== keyToken) return false;
+  if (actualMeta !== expectMeta) return false;
+  if (actualCtrl !== expectCtrl) return false;
+  if (actualAlt !== expectAlt) return false;
+  if (actualShift !== expectShift) return false;
+  return true;
 }
 
 function unregisterShortcutVariants(shortcut: string): void {
@@ -2300,6 +2354,16 @@ function createWindow(): void {
     callback(true);
   });
 
+  // Swallow the exact shortcut event that opened the launcher. Without this,
+  // macOS can emit the invalid-action beep when the key-equivalent lands on the
+  // newly focused window while the key is still held.
+  mainWindow.webContents.on('before-input-event', (event: any, input: any) => {
+    const inputType = String(input?.type || '').toLowerCase();
+    if (inputType !== 'keydown') return;
+    if (!shouldSuppressOpeningShortcutInput(input)) return;
+    event.preventDefault();
+  });
+
   mainWindow.webContents.setWindowOpenHandler((details: any) => {
     const detachedPopupName = resolveDetachedPopupName(details);
     if (!detachedPopupName) {
@@ -2841,6 +2905,38 @@ function setLauncherMode(mode: LauncherMode): void {
 }
 
 function captureFrontmostAppContext(): void {
+  if (process.platform !== 'darwin') return;
+  try {
+    const { execFileSync } = require('child_process');
+    const asn = String(execFileSync('/usr/bin/lsappinfo', ['front'], { encoding: 'utf-8' }) || '').trim();
+    if (asn) {
+      const info = String(
+        execFileSync('/usr/bin/lsappinfo', ['info', '-only', 'bundleid,name,path', asn], { encoding: 'utf-8' }) || ''
+      );
+      const bundleId =
+        info.match(/"CFBundleIdentifier"\s*=\s*"([^"]*)"/)?.[1]?.trim() ||
+        info.match(/"bundleid"\s*=\s*"([^"]*)"/i)?.[1]?.trim() ||
+        '';
+      const name =
+        info.match(/"LSDisplayName"\s*=\s*"([^"]*)"/)?.[1]?.trim() ||
+        info.match(/"name"\s*=\s*"([^"]*)"/i)?.[1]?.trim() ||
+        '';
+      const appPath = info.match(/"path"\s*=\s*"([^"]*)"/)?.[1]?.trim() || '';
+      if (bundleId !== 'com.supercmd.app' && bundleId !== 'com.supercmd' && name !== 'SuperCmd' && name !== 'Electron') {
+        if (bundleId || name || appPath) {
+          lastFrontmostApp = {
+            name: name || (bundleId ? bundleId : 'Unknown'),
+            path: appPath || '',
+            ...(bundleId ? { bundleId } : {}),
+          };
+          return;
+        }
+      }
+    }
+  } catch {
+    // Fallback below.
+  }
+
   try {
     const { execSync } = require('child_process');
     const script = `
@@ -2865,28 +2961,39 @@ function captureFrontmostAppContext(): void {
 async function showWindow(options?: { systemCommandId?: string }): Promise<void> {
   if (!mainWindow) return;
   setLauncherOverlayTopmost(true);
+  let selectionSnapshotPromise: Promise<string> | null = null;
 
   // Capture the frontmost app BEFORE showing our window.
-  // Skip during onboarding: captureFrontmostAppContext() runs an osascript
-  // "tell application System Events" command that triggers the macOS Automation
-  // permission dialog on first launch, stealing focus from the onboarding screen.
+  // Skip during onboarding to avoid any focus-stealing side effects during setup.
   if (launcherMode !== 'onboarding') {
     captureFrontmostAppContext();
-    await captureSelectionSnapshotBeforeShow();
+    // Snapshot selected text for contextual commands without stealing selection
+    // or triggering system beep from synthetic Cmd+C.
+    selectionSnapshotPromise = captureSelectionSnapshotBeforeShow({ allowClipboardFallback: false });
   }
 
   applyLauncherBounds(launcherMode);
+  const initialSelectionSnapshot = getRecentSelectionSnapshot();
 
   const windowShownPayload = {
     mode: launcherMode,
     systemCommandId: options?.systemCommandId,
-    selectedTextSnapshot: getRecentSelectionSnapshot(),
+    selectedTextSnapshot: initialSelectionSnapshot,
   };
 
   // Notify renderer before showing the window so it can finalize view state
   // (including contextual command list) before first paint.
   mainWindow.webContents.send('window-shown', windowShownPayload);
-  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  if (selectionSnapshotPromise) {
+    void selectionSnapshotPromise.then((snapshot) => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      const nextSnapshot = String(snapshot || '').trim();
+      const prevSnapshot = String(initialSelectionSnapshot || '').trim();
+      if (nextSnapshot === prevSnapshot) return;
+      mainWindow.webContents.send('selection-snapshot-updated', { selectedTextSnapshot: nextSnapshot });
+    });
+  }
 
   try {
     app.focus({ steal: true });
@@ -4864,6 +4971,7 @@ function registerGlobalShortcut(shortcut: string): boolean {
 
   try {
     const success = globalShortcut.register(normalizedShortcut, () => {
+      markOpeningShortcutForSuppression(normalizedShortcut);
       toggleWindow();
     });
     if (success) {
@@ -4877,7 +4985,11 @@ function registerGlobalShortcut(shortcut: string): boolean {
       // Re-register old one
       if (currentShortcut && currentShortcut !== normalizedShortcut) {
         try {
-          globalShortcut.register(currentShortcut, () => toggleWindow());
+          const restoredShortcut = currentShortcut;
+          globalShortcut.register(restoredShortcut, () => {
+            markOpeningShortcutForSuppression(restoredShortcut);
+            toggleWindow();
+          });
         } catch {}
       }
       globalShortcutRegistrationState.ok = false;

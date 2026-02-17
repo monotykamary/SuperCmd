@@ -217,6 +217,7 @@ export interface ElectronAPI {
   getLastFrontmostApp: () => Promise<{ name: string; path: string; bundleId?: string } | null>;
   restoreLastFrontmostApp: () => Promise<boolean>;
   onWindowShown: (callback: (payload?: { mode?: 'default' | 'onboarding' | 'whisper' | 'speak' | 'prompt'; systemCommandId?: string; selectedTextSnapshot?: string }) => void) => (() => void);
+  onSelectionSnapshotUpdated: (callback: (payload?: { selectedTextSnapshot?: string }) => void) => (() => void);
   onWindowHidden: (callback: () => void) => (() => void);
   onRunSystemCommand: (callback: (commandId: string) => void) => (() => void);
   onOnboardingHotkeyPressed: (callback: () => void) => (() => void);

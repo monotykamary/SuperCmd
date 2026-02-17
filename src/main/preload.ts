@@ -36,6 +36,13 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.removeListener('window-shown', listener);
     };
   },
+  onSelectionSnapshotUpdated: (callback: (payload?: { selectedTextSnapshot?: string }) => void) => {
+    const listener = (_event: any, payload: any) => callback(payload);
+    ipcRenderer.on('selection-snapshot-updated', listener);
+    return () => {
+      ipcRenderer.removeListener('selection-snapshot-updated', listener);
+    };
+  },
   onWindowHidden: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on('window-hidden', listener);

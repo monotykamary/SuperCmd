@@ -392,6 +392,13 @@ const App: React.FC = () => {
     return cleanupWindowShown;
   }, [fetchCommands, loadLauncherPreferences, refreshSelectedTextSnapshot, openWhisper, openSpeak, openCursorPrompt, resetCursorPromptState, exitAiMode, setShowCursorPrompt, setShowWhisperHint, setMemoryFeedback, setMemoryActionLoading, setScriptCommandSetup, setScriptCommandOutput, setExtensionView, setSearchQuery, setSelectedIndex, setShowSnippetManager, setShowFileSearch, openClipboardManager, setShowClipboardManager, openSnippetManager, openFileSearch, openOnboarding]);
 
+  useEffect(() => {
+    const cleanupSelectionSnapshotUpdated = window.electron.onSelectionSnapshotUpdated((payload) => {
+      setSelectedTextSnapshot(String(payload?.selectedTextSnapshot || '').trim());
+    });
+    return cleanupSelectionSnapshotUpdated;
+  }, []);
+
   // Listen for OAuth logout events from the settings window.
   // When the user clicks "Logout" in settings, clear the in-memory token
   // and reset the extension view so the auth prompt shows on next launch.
