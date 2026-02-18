@@ -68,6 +68,7 @@ const SPEAK_TTS_OPTIONS = [
   { id: 'elevenlabs-multilingual-v2', label: 'ElevenLabs Multilingual v2' },
   { id: 'elevenlabs-flash-v2-5', label: 'ElevenLabs Flash v2.5' },
   { id: 'elevenlabs-turbo-v2-5', label: 'ElevenLabs Turbo v2.5' },
+  { id: 'elevenlabs-v3', label: 'ElevenLabs v3 (Alpha)' },
 ];
 
 type EdgeVoiceGender = 'female' | 'male';

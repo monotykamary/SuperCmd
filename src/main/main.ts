@@ -1289,6 +1289,9 @@ function resolveElevenLabsTtsConfig(selectedModel: string): { modelId: string; v
   if (modelId === 'turbo_v2_5' || modelId === 'turbo-v2-5') {
     modelId = 'eleven_turbo_v2_5';
   }
+  if (modelId === 'v3') {
+    modelId = 'eleven_v3';
+  }
   if (!modelId) {
     modelId = 'eleven_multilingual_v2';
   }
