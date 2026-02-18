@@ -101,14 +101,6 @@ export async function* streamAI(
   options: AIRequestOptions
 ): AsyncGenerator<string> {
   const route = resolveModel(options.model, config);
-  console.log('[AI] Resolved route:', { 
-    requestedModel: options.model, 
-    provider: route.provider, 
-    modelId: route.modelId,
-    configProvider: config.provider,
-    configDefaultModel: config.defaultModel,
-    configOpenaiCompatibleModel: config.openaiCompatibleModel
-  });
   const temperature = options.creativity ?? 0.7;
 
   switch (route.provider) {
