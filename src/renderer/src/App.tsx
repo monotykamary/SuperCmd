@@ -1814,7 +1814,7 @@ const App: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent border-none outline-none text-white/95 placeholder-white/45 text-[15px] font-medium tracking-[0.005em]"
+            className="flex-1 bg-transparent border-none outline-none text-white/95 placeholder-white/45 placeholder:font-medium text-[15px] font-medium tracking-[0.005em]"
             autoFocus
           />
           {searchQuery && aiAvailable && (
@@ -1970,7 +1970,12 @@ const App: React.FC = () => {
         {!isLoading && (
           <div
             className="flex items-center px-4 py-3.5 border-t border-white/[0.10]"
-            style={{ background: 'rgba(22,23,27,0.84)' }}
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)), rgba(30,31,36,0.66)',
+              backdropFilter: 'blur(48px) saturate(170%)',
+              WebkitBackdropFilter: 'blur(48px) saturate(170%)',
+            }}
           >
             <div
               className={`flex items-center gap-2 text-xs flex-1 min-w-0 font-medium truncate ${

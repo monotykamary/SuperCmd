@@ -439,8 +439,13 @@ const StoreTab: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
 
           {!isLoading && (
             <div
-              className="flex items-center px-4 py-3.5 border-t border-white/[0.06]"
-              style={{ background: 'rgba(28,28,32,0.90)' }}
+              className="flex items-center px-4 py-3.5 border-t border-white/[0.10]"
+              style={{
+                background:
+                  'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)), rgba(30,31,36,0.66)',
+                backdropFilter: 'blur(48px) saturate(170%)',
+                WebkitBackdropFilter: 'blur(48px) saturate(170%)',
+              }}
             >
               <div className="flex items-center gap-2 text-white/45 text-xs flex-1 min-w-0 font-medium truncate">
                 {busyExtension ? (

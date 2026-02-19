@@ -58,7 +58,7 @@ select {
 .glass-effect {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
-    rgba(18, 19, 22, 0.86);
+    rgba(24, 22, 23, 0.93);
   -webkit-backdrop-filter: blur(54px) saturate(170%);
   backdrop-filter: blur(54px) saturate(170%);
   position: relative;
@@ -217,7 +217,7 @@ select {
 
 .command-item.selected {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
 }
 
 /* Search input — inline, no background */
