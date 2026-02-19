@@ -1874,7 +1874,7 @@ const App: React.FC = () => {
                     </div>
                     <ArrowRight className="w-5 h-5 text-white/25 flex-shrink-0" />
                     <div className="text-center">
-                      <div className="text-white text-xl font-semibold">{calcResult.result}</div>
+                      <div className="text-white text-xl font-medium">{calcResult.result}</div>
                       <div className="text-white/35 text-xs mt-1">{calcResult.resultLabel}</div>
                     </div>
                   </div>
@@ -1895,7 +1895,7 @@ const App: React.FC = () => {
                     acc.nodes.push(
                       <div
                         key={`section-${section.title}`}
-                        className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-white/50 font-semibold"
+                        className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-white/50 font-medium"
                       >
                         {section.title}
                       </div>
@@ -1935,7 +1935,7 @@ const App: React.FC = () => {
                             </div>
 
                             <div className="min-w-0 flex-1 flex items-center gap-2">
-                              <div className="text-white/95 text-[13px] font-semibold truncate tracking-[0.004em]">
+                              <div className="text-white/95 text-[13px] font-medium truncate tracking-[0.004em]">
                                 {getCommandDisplayTitle(command)}
                               </div>
                               {accessoryLabel ? (
@@ -2005,7 +2005,7 @@ const App: React.FC = () => {
               <div className="flex items-center gap-2 mr-3">
                 <button
                   onClick={() => selectedActions[0].execute()}
-                  className="text-white text-xs font-semibold hover:text-white/85 transition-colors"
+                  className="text-white text-xs font-medium hover:text-white/85 transition-colors"
                 >
                   {selectedActions[0].title}
                 </button>
