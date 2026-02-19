@@ -860,6 +860,22 @@ const App: React.FC = () => {
     [selectedCommand, movePinnedCommand]
   );
 
+  const moveSelection = useCallback(
+    (direction: 'up' | 'down', options: { wrap?: boolean } = {}) => {
+      const { wrap = false } = options;
+      setSelectedIndex((prev) => {
+        const max = Math.max(0, displayCommands.length + calcOffset - 1);
+        if (direction === 'down') {
+          if (prev < max) return prev + 1;
+          return wrap ? 0 : max;
+        }
+        if (prev > 0) return prev - 1;
+        return wrap ? max : 0;
+      });
+    },
+    [displayCommands.length, calcOffset]
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.metaKey && (e.key === 'k' || e.key === 'K') && !e.repeat) {
@@ -868,6 +884,20 @@ const App: React.FC = () => {
         setContextMenu(null);
         return;
       }
+
+      if (e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+        if (e.key === 'j' || e.key === 'J') {
+          e.preventDefault();
+          moveSelection('down');
+          return;
+        }
+        if (e.key === 'k' || e.key === 'K') {
+          e.preventDefault();
+          moveSelection('up');
+          return;
+        }
+      }
+
       if (showActions || contextMenu) {
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -915,15 +945,12 @@ const App: React.FC = () => {
 
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex((prev) => {
-            const max = displayCommands.length + calcOffset - 1;
-            return prev < max ? prev + 1 : prev;
-          });
+          moveSelection('down');
           break;
 
         case 'ArrowUp':
           e.preventDefault();
-          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+          moveSelection('up');
           break;
 
         case 'Enter':
@@ -953,6 +980,7 @@ const App: React.FC = () => {
       }
     },
     [
+      moveSelection,
       displayCommands,
       selectedIndex,
       searchQuery,
