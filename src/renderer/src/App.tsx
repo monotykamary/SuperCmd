@@ -1804,7 +1804,7 @@ const App: React.FC = () => {
     <>
     {alwaysMountedRunners}
     <div className="w-full h-full">
-      <div className="glass-effect overflow-hidden h-full flex flex-col">
+      <div className="glass-effect overflow-hidden h-full flex flex-col relative">
         {/* Search header - transparent background */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.06]">
           <input
@@ -1814,7 +1814,7 @@ const App: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent border-none outline-none text-white/95 placeholder-white/45 text-[15px] font-medium tracking-[0.005em]"
+            className="flex-1 bg-transparent border-none outline-none text-white/95 placeholder-white/45 placeholder:font-medium text-[15px] font-medium tracking-[0.005em]"
             autoFocus
           />
           {searchQuery && aiAvailable && (
@@ -1874,7 +1874,7 @@ const App: React.FC = () => {
                     </div>
                     <ArrowRight className="w-5 h-5 text-white/25 flex-shrink-0" />
                     <div className="text-center">
-                      <div className="text-white text-xl font-semibold">{calcResult.result}</div>
+                      <div className="text-white text-xl font-medium">{calcResult.result}</div>
                       <div className="text-white/35 text-xs mt-1">{calcResult.resultLabel}</div>
                     </div>
                   </div>
@@ -1895,7 +1895,7 @@ const App: React.FC = () => {
                     acc.nodes.push(
                       <div
                         key={`section-${section.title}`}
-                        className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-white/50 font-semibold"
+                        className="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wider text-white/50 font-medium"
                       >
                         {section.title}
                       </div>
@@ -1935,7 +1935,7 @@ const App: React.FC = () => {
                             </div>
 
                             <div className="min-w-0 flex-1 flex items-center gap-2">
-                              <div className="text-white/95 text-[13px] font-semibold truncate tracking-[0.004em]">
+                              <div className="text-white/95 text-[13px] font-medium truncate tracking-[0.004em]">
                                 {getCommandDisplayTitle(command)}
                               </div>
                               {accessoryLabel ? (
@@ -1969,11 +1969,16 @@ const App: React.FC = () => {
         {/* Footer actions */}
         {!isLoading && (
           <div
-            className="flex items-center px-4 py-3.5 border-t border-white/[0.06]"
-            style={{ background: 'rgba(28,28,32,0.90)' }}
+            className="absolute bottom-0 left-0 right-0 z-10 flex items-center px-4 py-2.5 border-t border-white/[0.08]"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)), rgba(28,29,34,0.84)',
+              backdropFilter: 'blur(48px) saturate(170%)',
+              WebkitBackdropFilter: 'blur(48px) saturate(170%)',
+            }}
           >
             <div
-              className={`flex items-center gap-2 text-xs flex-1 min-w-0 font-medium truncate ${
+              className={`flex items-center gap-2 text-xs flex-1 min-w-0 font-normal truncate ${
                 memoryActionLoading
                   ? 'text-white/60'
                   : memoryFeedback
@@ -2005,7 +2010,7 @@ const App: React.FC = () => {
               <div className="flex items-center gap-2 mr-3">
                 <button
                   onClick={() => selectedActions[0].execute()}
-                  className="text-white text-xs font-semibold hover:text-white/85 transition-colors"
+                  className="text-white text-xs font-normal hover:text-white/85 transition-colors"
                 >
                   {selectedActions[0].title}
                 </button>
@@ -2023,7 +2028,7 @@ const App: React.FC = () => {
               }}
               className="flex items-center gap-1.5 text-white/50 hover:text-white/70 transition-colors"
             >
-              <span className="text-xs font-medium">Actions</span>
+              <span className="text-xs font-normal">Actions</span>
               <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded bg-white/[0.08] text-[11px] text-white/40 font-medium">⌘</kbd>
               <kbd className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded bg-white/[0.08] text-[11px] text-white/40 font-medium">K</kbd>
             </button>

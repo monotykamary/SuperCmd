@@ -85,8 +85,8 @@ function getNativeBinaryPath(name: string): string {
 
 // ─── Window Configuration ───────────────────────────────────────────
 
-const DEFAULT_WINDOW_WIDTH = 860;
-const DEFAULT_WINDOW_HEIGHT = 540;
+const DEFAULT_WINDOW_WIDTH = 800;
+const DEFAULT_WINDOW_HEIGHT = 500;
 const ONBOARDING_WINDOW_WIDTH = 1120;
 const ONBOARDING_WINDOW_HEIGHT = 740;
 const CURSOR_PROMPT_WINDOW_WIDTH = 500;

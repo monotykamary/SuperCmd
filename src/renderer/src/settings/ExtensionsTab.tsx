@@ -816,7 +816,7 @@ const ExtensionsTab: React.FC<{
 
   return (
     <div className="h-full min-h-0 flex flex-col">
-      <div className="flex flex-1 min-h-0 bg-white/[0.01]">
+      <div className="flex flex-1 min-h-0 bg-[rgba(20,20,20,0.30)]">
         <div className="flex-[0_0_66%] min-w-[600px] h-full border-r border-white/[0.08] flex flex-col">
           <div className="px-3 py-2 border-b border-white/[0.06]">
             <div className="flex items-center gap-2">
@@ -857,7 +857,15 @@ const ExtensionsTab: React.FC<{
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
                 {showTopActionsMenu ? (
-                  <div className="absolute right-0 mt-1 w-48 rounded-lg border border-white/[0.10] bg-[#1a1c23]/95 backdrop-blur-md shadow-2xl overflow-hidden z-20">
+                  <div
+                    className="absolute right-0 mt-1 w-48 rounded-lg border border-white/[0.10] shadow-2xl overflow-hidden z-20"
+                    style={{
+                      background:
+                        'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)), rgba(30,31,36,0.66)',
+                      backdropFilter: 'blur(48px) saturate(170%)',
+                      WebkitBackdropFilter: 'blur(48px) saturate(170%)',
+                    }}
+                  >
                     <button
                       onClick={() => {
                         setShowTopActionsMenu(false);
@@ -1323,10 +1331,14 @@ const ExtensionsTab: React.FC<{
           }}
         >
           <div
-            className="absolute min-w-[150px] rounded-xl border border-white/[0.12] bg-[#1f2129]/95 shadow-2xl backdrop-blur-xl p-1"
+            className="absolute min-w-[150px] rounded-xl border border-white/[0.12] shadow-2xl p-1"
             style={{
               left: Math.min(extensionContextMenu.x, window.innerWidth - 180),
               top: Math.min(extensionContextMenu.y, window.innerHeight - 120),
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)), rgba(30,31,36,0.66)',
+              backdropFilter: 'blur(48px) saturate(170%)',
+              WebkitBackdropFilter: 'blur(48px) saturate(170%)',
             }}
             onClick={(event) => event.stopPropagation()}
             onContextMenu={(event) => event.preventDefault()}
