@@ -1829,13 +1829,11 @@ function normalizeAccelerator(shortcut: string): string {
     fn: false,
   };
 
+  // Hyper support temporarily disabled. Keep raw accelerator to avoid
+  // accidentally downgrading "Hyper+X" to plain "X".
   const hasHyper = modifierTokens.some((token) => token === 'hyper' || token === '✦');
   if (hasHyper) {
-    const includeShiftInHyper = Boolean(loadSettings().hyperKeyIncludeShift ?? true);
-    normalizedModifiers.command = true;
-    normalizedModifiers.control = true;
-    normalizedModifiers.alt = true;
-    normalizedModifiers.shift = includeShiftInHyper;
+    return raw;
   }
 
   for (const token of modifierTokens) {
@@ -4831,9 +4829,20 @@ function isCloseWindowShortcutInput(input: any): boolean {
   return Boolean(input.control) && !input.meta && !input.alt;
 }
 
-function registerCloseWindowShortcut(win: InstanceType<typeof BrowserWindow>): void {
+function isEscapeInput(input: any): boolean {
+  const inputType = String(input?.type || '').toLowerCase();
+  if (inputType !== 'keydown') return false;
+  const key = String(input?.key || '').toLowerCase();
+  const code = String(input?.code || '').toLowerCase();
+  return key === 'escape' || code === 'escape';
+}
+
+function registerCloseWindowShortcut(
+  win: InstanceType<typeof BrowserWindow>,
+  options?: { closeOnEscape?: boolean }
+): void {
   win.webContents.on('before-input-event', (event: any, input: any) => {
-    if (!isCloseWindowShortcutInput(input)) return;
+    if (!isCloseWindowShortcutInput(input) && !(options?.closeOnEscape && isEscapeInput(input))) return;
     event.preventDefault();
     if (!win.isDestroyed()) {
       win.close();
@@ -4866,8 +4875,8 @@ function openSettingsWindow(payload?: SettingsNavigationPayload): void {
     }
     return screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
   })();
-  const settingsWidth = Math.max(1180, Math.min(1460, displayWidth - 64));
-  const settingsHeight = Math.max(760, Math.min(920, displayHeight - 64));
+  const settingsWidth = Math.max(1120, Math.min(1360, displayWidth - 96));
+  const settingsHeight = Math.max(720, Math.min(860, displayHeight - 96));
   const settingsX = displayX + Math.floor((displayWidth - settingsWidth) / 2);
   const settingsY = displayY + Math.floor((displayHeight - settingsHeight) / 2);
 
@@ -4876,8 +4885,8 @@ function openSettingsWindow(payload?: SettingsNavigationPayload): void {
     height: settingsHeight,
     x: settingsX,
     y: settingsY,
-    minWidth: 1180,
-    minHeight: 760,
+    minWidth: 1120,
+    minHeight: 720,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
     transparent: true,
@@ -4959,7 +4968,7 @@ function openExtensionStoreWindow(): void {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
-  registerCloseWindowShortcut(extensionStoreWindow);
+  registerCloseWindowShortcut(extensionStoreWindow, { closeOnEscape: true });
 
   loadWindowUrl(extensionStoreWindow, '/extension-store');
 
@@ -5924,14 +5933,15 @@ app.whenReady().then(async () => {
       if (patch.openAtLogin !== undefined) {
         applyOpenAtLogin(Boolean(patch.openAtLogin));
       }
-      if (patch.hyperKeyIncludeShift !== undefined) {
-        try {
-          registerGlobalShortcut(result.globalShortcut);
-        } catch {}
-        try {
-          registerCommandHotkeys(result.commandHotkeys);
-        } catch {}
-      }
+      // Hyper runtime wiring is temporarily disabled.
+      // if (patch.hyperKeyIncludeShift !== undefined) {
+      //   try {
+      //     registerGlobalShortcut(result.globalShortcut);
+      //   } catch {}
+      //   try {
+      //     registerCommandHotkeys(result.commandHotkeys);
+      //   } catch {}
+      // }
       // When onboarding completes: hide dock, then start services that were
       // deferred to avoid triggering permission dialogs during onboarding.
       if (patch.hasSeenOnboarding === true) {

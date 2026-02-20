@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Keyboard, Info, Bug, RefreshCw, Download, RotateCcw, Type } from 'lucide-react';
+import { Keyboard, Info, RefreshCw, Download, RotateCcw, Type } from 'lucide-react';
 import HotkeyRecorder from './HotkeyRecorder';
 import type { AppSettings, AppUpdaterStatus } from '../../types/electron';
 import { applyAppFontSize, getDefaultAppFontSize } from '../utils/font-size';
@@ -303,26 +303,6 @@ const GeneralTab: React.FC = () => {
               </button>
             </div>
           </div>
-        </SettingsRow>
-
-        <SettingsRow
-          icon={<Bug className="w-4 h-4" />}
-          title="Debug Mode"
-          description="Show detailed logs when extensions fail to load or build."
-        >
-          <label className="inline-flex items-center gap-2.5 text-[13px] text-white/85 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.debugMode ?? false}
-              onChange={async (e) => {
-                const debugMode = e.target.checked;
-                setSettings((prev) => (prev ? { ...prev, debugMode } : prev));
-                await window.electron.saveSettings({ debugMode });
-              }}
-              className="w-4 h-4 rounded accent-cyan-400"
-            />
-            Enable debug mode
-          </label>
         </SettingsRow>
 
         <SettingsRow

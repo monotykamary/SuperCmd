@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Command, Palette } from 'lucide-react';
-import HotkeyRecorder from './HotkeyRecorder';
+import { Palette, Bug } from 'lucide-react';
 import type { AppSettings } from '../../types/electron';
 import { applyBaseColor, normalizeBaseColorHex } from '../utils/base-color';
 
@@ -35,34 +34,8 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
   </div>
 );
 
-const HYPER_KEY_OPTIONS: Array<{ value: AppSettings['hyperKeySource']; label: string }> = [
-  { value: 'none', label: '-' },
-  { value: 'caps-lock', label: 'Caps Lock (⇪)' },
-  { value: 'left-command', label: 'Left Command (⌘)' },
-  { value: 'right-command', label: 'Right Command (⌘)' },
-  { value: 'left-control', label: 'Left Control (⌃)' },
-  { value: 'right-control', label: 'Right Control (⌃)' },
-  { value: 'left-shift', label: 'Left Shift (⇧)' },
-  { value: 'right-shift', label: 'Right Shift (⇧)' },
-  { value: 'left-option', label: 'Left Option (⌥)' },
-  { value: 'right-option', label: 'Right Option (⌥)' },
-  { value: 'f1', label: 'F1' },
-  { value: 'f2', label: 'F2' },
-  { value: 'f3', label: 'F3' },
-  { value: 'f4', label: 'F4' },
-  { value: 'f5', label: 'F5' },
-  { value: 'f6', label: 'F6' },
-  { value: 'f7', label: 'F7' },
-  { value: 'f8', label: 'F8' },
-  { value: 'f9', label: 'F9' },
-  { value: 'f10', label: 'F10' },
-  { value: 'f11', label: 'F11' },
-  { value: 'f12', label: 'F12' },
-];
-
 const AdvancedTab: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [shortcutStatus, setShortcutStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     window.electron.getSettings().then((next) => {
@@ -74,50 +47,6 @@ const AdvancedTab: React.FC = () => {
   if (!settings) {
     return <div className="p-6 text-white/50 text-[12px]">Loading advanced settings...</div>;
   }
-
-  const handleShortcutChange = async (newShortcut: string) => {
-    if (!newShortcut) return;
-    const success = await window.electron.updateGlobalShortcut(newShortcut);
-    if (success) {
-      const updated = await window.electron.saveSettings({ globalShortcut: newShortcut });
-      setSettings(updated);
-      setShortcutStatus('success');
-      setTimeout(() => setShortcutStatus('idle'), 1800);
-    } else {
-      setShortcutStatus('error');
-      setTimeout(() => setShortcutStatus('idle'), 2600);
-    }
-  };
-
-  const handleHyperKeySourceChange = async (nextSource: AppSettings['hyperKeySource']) => {
-    const patch: Partial<AppSettings> =
-      nextSource === 'caps-lock'
-        ? {
-            hyperKeySource: nextSource,
-            hyperKeyIncludeShift: settings.hyperKeyIncludeShift ?? true,
-            hyperKeyQuickPressAction: settings.hyperKeyQuickPressAction || 'toggle-caps-lock',
-          }
-        : {
-            hyperKeySource: nextSource,
-          };
-    const updated = await window.electron.saveSettings(patch);
-    setSettings(updated);
-  };
-
-  const handleHyperIncludeShiftChange = async (next: boolean) => {
-    const updated = await window.electron.saveSettings({ hyperKeyIncludeShift: next });
-    setSettings(updated);
-  };
-
-  const handleHyperQuickPressActionChange = async (next: AppSettings['hyperKeyQuickPressAction']) => {
-    const updated = await window.electron.saveSettings({ hyperKeyQuickPressAction: next });
-    setSettings(updated);
-  };
-
-  const handleHyperReplaceGlyphsChange = async (next: boolean) => {
-    const updated = await window.electron.saveSettings({ hyperReplaceModifierGlyphsWithHyper: next });
-    setSettings(updated);
-  };
 
   const handleBaseColorPreview = (value: string) => {
     const normalized = normalizeBaseColorHex(value);
@@ -137,7 +66,8 @@ const AdvancedTab: React.FC = () => {
       <h2 className="text-[15px] font-semibold text-white">Advanced</h2>
 
       <div className="overflow-hidden rounded-xl border border-white/[0.10] bg-[rgba(20,20,20,0.34)]">
-        <SettingsRow
+        {/* Hyper Key UI is temporarily disabled. */}
+        {/* <SettingsRow
           icon={<Command className="w-4 h-4" />}
           title="Hyper Key"
           description="Choose which key should act as Hyper in your external remapper setup."
@@ -196,20 +126,26 @@ const AdvancedTab: React.FC = () => {
               </>
             )}
           </div>
-        </SettingsRow>
+        </SettingsRow> */}
 
         <SettingsRow
-          icon={<Command className="w-4 h-4" />}
-          title="Launcher Shortcut"
-          description="Supports Hyper + any key. Hyper requires Ctrl + Alt + Shift + Command together."
+          icon={<Bug className="w-4 h-4" />}
+          title="Debug Mode"
+          description="Show detailed logs when extensions fail to load or build."
         >
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <HotkeyRecorder value={settings.globalShortcut} onChange={handleShortcutChange} large />
-              {shortcutStatus === 'success' ? <span className="text-[12px] text-emerald-300">Shortcut updated</span> : null}
-              {shortcutStatus === 'error' ? <span className="text-[12px] text-red-300">Shortcut unavailable</span> : null}
-            </div>
-          </div>
+          <label className="inline-flex items-center gap-2.5 text-[13px] text-white/85 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.debugMode ?? false}
+              onChange={async (e) => {
+                const debugMode = e.target.checked;
+                setSettings((prev) => (prev ? { ...prev, debugMode } : prev));
+                await window.electron.saveSettings({ debugMode });
+              }}
+              className="w-4 h-4 rounded accent-cyan-400"
+            />
+            Enable debug mode
+          </label>
         </SettingsRow>
 
         <SettingsRow

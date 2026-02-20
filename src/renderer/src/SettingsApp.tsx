@@ -140,15 +140,17 @@ const SettingsApp: React.FC = () => {
             <img src={supercmdLogo} alt="" className="w-3.5 h-3.5 object-contain" draggable={false} />
             SuperCmd Settings
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="inline-flex items-stretch overflow-hidden rounded-md border border-white/[0.12] bg-white/[0.04]">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] transition-colors ${
+                  tab.id !== tabs[0].id ? 'border-l border-white/[0.10]' : ''
+                } ${
                   activeTab === tab.id
-                    ? 'bg-white/[0.12] text-white border border-white/[0.14]'
-                    : 'text-white/60 border border-white/[0.08] hover:text-white/85 hover:bg-white/[0.05]'
+                    ? 'bg-white/[0.16] text-white'
+                    : 'text-white/60 hover:text-white/85 hover:bg-white/[0.06]'
                 }`}
               >
                 {tab.icon}

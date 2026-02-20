@@ -543,7 +543,6 @@ const AITab: React.FC = () => {
         description="Master switch for AI features."
       >
         <div className="flex items-center gap-2">
-          {saveStatus === 'saved' && <span className="text-[12px] text-green-400">Saved</span>}
           <button
             onClick={() => updateAI({ enabled: !ai.enabled })}
             className={`relative w-10 h-6 rounded-full transition-colors ${
@@ -556,6 +555,7 @@ const AITab: React.FC = () => {
               }`}
             />
           </button>
+          {saveStatus === 'saved' && <span className="text-[12px] text-green-400">Saved</span>}
         </div>
       </AIRow>
 

@@ -63,16 +63,17 @@ function mapCodeToAcceleratorToken(code: string): string | null {
 function keyEventToAccelerator(e: KeyboardLikeEvent): string | null {
   const parts: string[] = [];
 
-  const hasHyper = e.metaKey && e.ctrlKey && e.altKey && e.shiftKey;
-  if (hasHyper) {
-    parts.push('Hyper');
-  } else {
-    if (isFnModifierPressed(e)) parts.push('Fn');
-    if (e.metaKey) parts.push('Command');
-    if (e.ctrlKey) parts.push('Control');
-    if (e.altKey) parts.push('Alt');
-    if (e.shiftKey) parts.push('Shift');
-  }
+  // Hyper support temporarily disabled.
+  // const hasHyper = e.metaKey && e.ctrlKey && e.altKey && e.shiftKey;
+  // if (hasHyper) {
+  //   parts.push('Hyper');
+  // } else {
+  if (isFnModifierPressed(e)) parts.push('Fn');
+  if (e.metaKey) parts.push('Command');
+  if (e.ctrlKey) parts.push('Control');
+  if (e.altKey) parts.push('Alt');
+  if (e.shiftKey) parts.push('Shift');
+  // }
 
   // Support fn/function as a standalone hold key for whisper dictation.
   if (e.key === 'Fn' || e.key === 'Function') return 'Fn';
@@ -174,7 +175,7 @@ const HotkeyRecorder: React.FC<HotkeyRecorderProps> = ({
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const pendingPrimaryModifierRef = useRef<'Fn' | 'CapsLock' | null>(null);
+  const pendingPrimaryModifierRef = useRef<'Fn' | null>(null);
   const isRecordingRef = useRef(false);
 
   const clearPendingPrimary = () => {
@@ -217,9 +218,9 @@ const HotkeyRecorder: React.FC<HotkeyRecorderProps> = ({
       return;
     }
 
-    // Fn/CapsLock are handled as pending primaries and committed on keyup if no combo key arrives.
-    if (e.key === 'Fn' || e.key === 'Function' || e.key === 'CapsLock') {
-      const primary = e.key === 'CapsLock' ? 'CapsLock' : 'Fn';
+    // Fn is handled as a pending primary and committed on keyup if no combo key arrives.
+    if (e.key === 'Fn' || e.key === 'Function') {
+      const primary = 'Fn';
       clearPendingPrimary();
       pendingPrimaryModifierRef.current = primary;
       return;
@@ -229,8 +230,7 @@ const HotkeyRecorder: React.FC<HotkeyRecorderProps> = ({
     if (pendingPrimary) {
       const keyToken = mapKeyboardEventToAcceleratorToken(e);
       if (keyToken && keyToken !== pendingPrimary) {
-        const logicalPrimary = pendingPrimary === 'CapsLock' ? 'Hyper' : 'Fn';
-        onChange(`${logicalPrimary}+${keyToken}`);
+        onChange(`Fn+${keyToken}`);
         clearPendingPrimary();
         setIsRecording(false);
         return;
@@ -251,7 +251,7 @@ const HotkeyRecorder: React.FC<HotkeyRecorderProps> = ({
     const pendingPrimary = pendingPrimaryModifierRef.current;
     if (!pendingPrimary) return;
 
-    const releasedPrimary = e.key === 'CapsLock' ? 'CapsLock' : (e.key === 'Fn' || e.key === 'Function' ? 'Fn' : null);
+    const releasedPrimary = (e.key === 'Fn' || e.key === 'Function' ? 'Fn' : null);
     if (!releasedPrimary || releasedPrimary !== pendingPrimary) return;
 
     onChange(pendingPrimary);
