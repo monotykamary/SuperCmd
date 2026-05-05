@@ -42,6 +42,7 @@ import { useBackgroundRefresh } from './hooks/useBackgroundRefresh';
 import { useSpeakManager } from './hooks/useSpeakManager';
 import { useWhisperManager } from './hooks/useWhisperManager';
 import { useInlineArgumentAnchor } from './hooks/useInlineArgumentAnchor';
+import { useBrowserSearch } from './hooks/useBrowserSearch';
 import { LAST_EXT_KEY, MAX_RECENT_COMMANDS } from './utils/constants';
 import { applyBaseColor } from './utils/base-color';
 import { resetAccessToken } from './raycast-api';
@@ -93,6 +94,8 @@ function getQuickLinkIdFromCommandId(commandId: string): string | null {
 const FILE_RESULT_COMMAND_PREFIX = 'system-file-result:';
 const MAX_LAUNCHER_FILE_RESULTS = 30;
 const MAX_LAUNCHER_FILE_CANDIDATE_RESULTS = 3000;
+const BROWSER_SEARCH_OPEN_URL_ID = 'browser-search-action-open-url';
+const BROWSER_SEARCH_PERFORM_SEARCH_ID = 'browser-search-action-perform-search';
 const MAX_LAUNCHER_FILE_RESULT_ICONS = MAX_LAUNCHER_FILE_RESULTS;
 const MIN_LAUNCHER_FILE_QUERY_LENGTH = 2;
 const MAX_INLINE_EXTENSION_ARGUMENTS = 3;
@@ -352,6 +355,8 @@ const App: React.FC = () => {
     DEFAULT_LAUNCHER_BACKGROUND_OPACITY_PERCENT
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const browserSearch = useBrowserSearch(searchQuery);
+  const [browserSearchSkipAutoComplete, setBrowserSearchSkipAutoComplete] = useState(false);
   const [inlineExtensionArgumentValues, setInlineExtensionArgumentValues] = useState<
     Record<string, Record<string, string>>
   >({});
@@ -1809,6 +1814,62 @@ const App: React.FC = () => {
     return { contextual, pinned, recent, files: fileResultCommands, other };
   }, [hasSearchQuery, visibleSourceCommands, pinnedCommands, pinnedFileCommands, recentCommands, recentCommandLaunchCounts, selectedTextSnapshot, fileResultCommands]);
 
+  // Chrome-style inline autocomplete: the input visually shows the full
+  // completion ("x.com") with the auto-extended portion (".com") selected,
+  // while `searchQuery` continues to hold what the user actually typed (so
+  // result filtering uses the typed prefix, not the extended URL).
+  const browserSearchAutoComplete = useMemo(() => {
+    if (!browserSearch.enabled) return null;
+    if (aiMode) return null;
+    if (browserSearchSkipAutoComplete) return null;
+    if (!searchQuery) return null;
+    const completion = browserSearch.getCompletion(searchQuery);
+    if (!completion) return null;
+    if (completion.completion === searchQuery) return null;
+    if (!completion.completion.toLowerCase().startsWith(searchQuery.toLowerCase())) return null;
+    return completion;
+  }, [browserSearch, searchQuery, browserSearchSkipAutoComplete, aiMode]);
+
+  const launcherInputValue = browserSearchAutoComplete?.completion ?? searchQuery;
+
+  const browserSearchSyntheticCommand = useMemo<CommandInfo | null>(() => {
+    if (!browserSearch.enabled) return null;
+    if (aiMode) return null;
+    const subject = launcherInputValue.trim();
+    if (!subject) return null;
+    const resolved = browserSearch.resolve(subject);
+    if (!resolved) return null;
+    if (resolved.type === 'url') {
+      const displayUrl = subject.replace(/^https?:\/\//i, '').replace(/\/+$/, '') || resolved.host || subject;
+      return {
+        id: BROWSER_SEARCH_OPEN_URL_ID,
+        title: t('launcher.browserSearch.openUrl', { url: displayUrl }),
+        subtitle: t('launcher.browserSearch.subtitle.openUrl'),
+        category: 'system',
+        keywords: [],
+        alwaysOnTop: true,
+      };
+    }
+    // Search intent: suppress when there are real app/command/contextual
+    // matches — the user is more likely launching an app like "Clipboard
+    // History" than literally searching the web for "clip". Files are
+    // intentionally excluded since broad filename matches are noisy.
+    const hasAppMatch =
+      groupedCommands.contextual.length > 0 ||
+      groupedCommands.pinned.length > 0 ||
+      groupedCommands.recent.length > 0 ||
+      groupedCommands.other.length > 0;
+    if (hasAppMatch) return null;
+    return {
+      id: BROWSER_SEARCH_PERFORM_SEARCH_ID,
+      title: t('launcher.browserSearch.searchFor', { query: subject }),
+      subtitle: t('launcher.browserSearch.subtitle.search'),
+      category: 'system',
+      keywords: [],
+      alwaysOnTop: true,
+    };
+  }, [browserSearch, launcherInputValue, aiMode, t, groupedCommands]);
+
   const displayCommands = useMemo(() => {
     const all = [
       ...groupedCommands.contextual,
@@ -1821,8 +1882,9 @@ const App: React.FC = () => {
     // above pinned, contextual, and everything else.
     const top = all.filter((c) => c.alwaysOnTop);
     const rest = all.filter((c) => !c.alwaysOnTop);
-    return [...top, ...rest];
-  }, [groupedCommands]);
+    const ordered = [...top, ...rest];
+    return browserSearchSyntheticCommand ? [browserSearchSyntheticCommand, ...ordered] : ordered;
+  }, [groupedCommands, browserSearchSyntheticCommand]);
 
   useEffect(() => {
     itemRefs.current = itemRefs.current.slice(0, displayCommands.length + calcOffset);
@@ -2238,6 +2300,49 @@ const App: React.FC = () => {
       inputRef.current?.focus();
     });
   }, []);
+
+  // After every render where the autocomplete state changed, sync the
+  // input's selection so the auto-extended portion stays highlighted.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (!browserSearchAutoComplete) return;
+    if (el.value !== browserSearchAutoComplete.completion) return;
+    const start = searchQuery.length;
+    const end = browserSearchAutoComplete.completion.length;
+    if (start >= end) return;
+    try {
+      el.setSelectionRange(start, end);
+    } catch {}
+  }, [browserSearchAutoComplete, searchQuery]);
+
+  // Once the user has dismissed an autocomplete with Backspace, keep it
+  // dismissed for the rest of the typing session — only re-enable when
+  // they clear the input completely and start fresh. Mirrors how Chrome's
+  // omnibox behaves after a manual rejection.
+  useEffect(() => {
+    if (searchQuery.length === 0 && browserSearchSkipAutoComplete) {
+      setBrowserSearchSkipAutoComplete(false);
+    }
+  }, [searchQuery, browserSearchSkipAutoComplete]);
+
+  const submitBrowserSearch = useCallback(
+    async (input: string) => {
+      const trimmed = input.trim();
+      if (!trimmed) return false;
+      const ok = await browserSearch.executeBrowserSearch(trimmed);
+      if (ok) {
+        setSearchQuery('');
+        setSelectedIndex(0);
+        setBrowserSearchSkipAutoComplete(false);
+        try {
+          window.electron.hideWindow();
+        } catch {}
+      }
+      return ok;
+    },
+    [browserSearch]
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -2907,6 +3012,17 @@ const App: React.FC = () => {
 
   const handleCommandExecute = async (command: CommandInfo) => {
     try {
+      // Browser-search synthetic action: open the resolved URL/search query
+      // in the default browser. Bypasses recent-commands tracking — the
+      // browser-search history module records the entry itself.
+      if (command.id === BROWSER_SEARCH_OPEN_URL_ID || command.id === BROWSER_SEARCH_PERFORM_SEARCH_ID) {
+        const subject = launcherInputValue.trim();
+        if (subject) {
+          await submitBrowserSearch(subject);
+        }
+        return;
+      }
+
       const filePath = getFileResultPathFromCommand(command);
       if (filePath) {
         await openFileResultByPath(filePath);
@@ -3988,9 +4104,21 @@ const App: React.FC = () => {
                 ref={inputRef}
                 type="text"
                 placeholder={aiMode ? t('launcher.aiMode.placeholder') : t('launcher.searchPlaceholder')}
-                value={searchQuery}
+                value={launcherInputValue}
                 onChange={(e) => {
                   const value = e.target.value;
+                  // If we had a suggestion and the resulting value equals the
+                  // already-typed prefix, the user just deleted the suggestion
+                  // suffix — keep searchQuery and remember to suppress autocomplete
+                  // until the input is cleared.
+                  if (
+                    browserSearchAutoComplete &&
+                    value === searchQuery &&
+                    value.length > 0
+                  ) {
+                    setBrowserSearchSkipAutoComplete(true);
+                    return;
+                  }
                   setSearchQuery(value);
                   if (launcherViewMode === 'compact') {
                     if (isCompactCollapsed && value.length > 0) {
