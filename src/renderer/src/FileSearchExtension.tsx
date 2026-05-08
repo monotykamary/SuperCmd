@@ -478,6 +478,7 @@ const FileSearchExtension: React.FC<FileSearchExtensionProps> = ({ onClose, init
       // Clear the file search view so the next window-shown returns
       // to the default command palette instead of re-entering file search.
       onClose();
+      await window.electron.hideWindow();
     } catch (error) {
       console.error('Failed to open file:', error);
     } finally {
@@ -492,6 +493,7 @@ const FileSearchExtension: React.FC<FileSearchExtensionProps> = ({ onClose, init
       // Clear the file search view so the next window-shown returns
       // to the default command palette instead of re-entering file search.
       onClose();
+      await window.electron.hideWindow();
     } catch (error) {
       console.error('Failed to reveal file:', error);
     }

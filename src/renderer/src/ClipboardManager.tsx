@@ -240,6 +240,7 @@ const ClipboardManager: React.FC<ClipboardManagerProps> = ({ onClose }) => {
       // Clear the clipboard manager view so the next window-shown returns
       // to the default command palette instead of re-entering clipboard history.
       onClose();
+      window.electron.hideWindow();
     } catch (e) {
       console.error('Failed to copy item:', e);
     }
