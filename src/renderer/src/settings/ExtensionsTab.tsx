@@ -2290,8 +2290,8 @@ const EmojiPickerSettingsSection: React.FC<{
           }`}
         >
           <span
-            className={`absolute left-0.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border shadow-sm bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)] transition-transform ${
-              enabled ? 'translate-x-[18px]' : 'translate-x-0'
+            className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border shadow-sm bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)] transition-all ${
+              enabled ? 'right-0.5 left-auto' : 'left-0.5 right-auto'
             }`}
           />
         </button>
