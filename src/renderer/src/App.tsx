@@ -2332,12 +2332,10 @@ const App: React.FC = () => {
       if (!trimmed) return false;
       const ok = await browserSearch.executeBrowserSearch(trimmed);
       if (ok) {
+        setBrowserSearchSkipAutoComplete(false);
+        try { await window.electron.hideWindow(); } catch {}
         setSearchQuery('');
         setSelectedIndex(0);
-        setBrowserSearchSkipAutoComplete(false);
-        try {
-          window.electron.hideWindow();
-        } catch {}
       }
       return ok;
     },
@@ -2838,6 +2836,8 @@ const App: React.FC = () => {
         await fetchCommands();
       } else if (!options?.background) {
         await window.electron.hideWindow();
+        // Clear search after hide to prevent a flash of the
+        // unfiltered command list while the window fades out.
         setSearchQuery('');
         setSelectedIndex(0);
       }
@@ -2887,9 +2887,9 @@ const App: React.FC = () => {
             clearInlineQuickLinkDynamicValuesForId(quickLinkId);
             setQuickLinkDynamicPrompt(null);
             await updateRecentCommands(command.id);
+            await window.electron.hideWindow();
             setSearchQuery('');
             setSelectedIndex(0);
-            await window.electron.hideWindow();
             return true;
           }
           setShowActions(false);
@@ -2917,9 +2917,9 @@ const App: React.FC = () => {
       clearInlineQuickLinkDynamicValuesForId(quickLinkId);
       setQuickLinkDynamicPrompt(null);
       await updateRecentCommands(command.id);
+      await window.electron.hideWindow();
       setSearchQuery('');
       setSelectedIndex(0);
-      await window.electron.hideWindow();
       return true;
     },
     [
@@ -3084,7 +3084,9 @@ const App: React.FC = () => {
             } else {
               upsertMenuBarExtension(hydratedWithInlineArguments);
             }
-            window.electron.hideWindow();
+            // Hide the window before clearing search to avoid a flash of
+            // the unfiltered list while the window fades out.
+            try { await window.electron.hideWindow(); } catch {}
             setSearchQuery('');
             setSelectedIndex(0);
             await updateRecentCommands(command.id);
@@ -3151,6 +3153,7 @@ const App: React.FC = () => {
         ) {
           await window.electron.executeCommand(command.id);
           await updateRecentCommands(command.id);
+          try { await window.electron.hideWindow(); } catch {}
           setSearchQuery('');
           setSelectedIndex(0);
           return;
@@ -3161,6 +3164,11 @@ const App: React.FC = () => {
 
       await window.electron.executeCommand(command.id);
       await updateRecentCommands(command.id);
+      // Hide the window before clearing the search query to prevent a
+      // brief flash of the unfiltered command list. The main process
+      // also schedules hideWindow() with a 50ms delay, but React
+      // re-renders with the cleared search before that timer fires.
+      try { await window.electron.hideWindow(); } catch {}
       setSearchQuery('');
       setSelectedIndex(0);
     } catch (error) {
@@ -3754,7 +3762,9 @@ const App: React.FC = () => {
             upsertMenuBarExtension(updatedBundle);
           }
           window.electron.hideWindow();
-          setSearchQuery('');
+          // Don't clear searchQuery here — onWindowShown resets it.
+          // Clearing before the window is visually hidden causes a flash
+          // of the unfiltered list.
           setSelectedIndex(0);
           localStorage.removeItem(LAST_EXT_KEY);
         }}
