@@ -773,6 +773,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const cleanupWindowHidden = window.electron.onWindowHidden(() => {
       lastWindowHiddenAtRef.current = Date.now();
+      setSearchQuery('');
+      setSelectedIndex(0);
     });
     return cleanupWindowHidden;
   }, []);
@@ -838,8 +840,6 @@ const App: React.FC = () => {
         setScriptCommandOutput(null);
         setExtensionView(null);
         localStorage.removeItem(LAST_EXT_KEY);
-        setSearchQuery('');
-        setSelectedIndex(0);
         exitAiMode();
         if (!isOnboardingMode) {
           expandLauncherForDirectLaunch();
@@ -933,8 +933,6 @@ const App: React.FC = () => {
         setMemoryFeedback(null);
         setMemoryActionLoading(false);
         setSelectedTextSnapshot(String(payload?.selectedTextSnapshot || '').trim());
-        setSearchQuery('');
-        setSelectedIndex(0);
         exitAiMode();
         expandLauncherForDirectLaunch();
         return;
@@ -984,10 +982,10 @@ const App: React.FC = () => {
       const pendingQuery = pendingWindowShownQueryRef.current;
       pendingWindowShownQueryRef.current = null;
       if (pendingQuery) {
+        setSearchQuery(pendingQuery);
+        setSelectedIndex(0);
         pendingFocusInlineArgRef.current = true;
       }
-      setSearchQuery(pendingQuery ?? '');
-      setSelectedIndex(0);
       // When a pending query is pre-filled (e.g. hotkey-triggered no-view
       // command with missing args), expand out of compact so results are
       // immediately visible.
