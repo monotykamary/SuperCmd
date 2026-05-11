@@ -798,10 +798,10 @@ const AITab: React.FC = () => {
       aria-label={label}
     >
       <span
-        className={`absolute left-0.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border shadow-sm transition-transform ${
+        className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border shadow-sm transition-all ${
           enabled
-            ? 'translate-x-[18px] bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
-            : 'translate-x-0 bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
+            ? 'right-0.5 left-auto bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
+            : 'left-0.5 right-auto bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
         }`}
       />
     </button>
@@ -825,10 +825,10 @@ const AITab: React.FC = () => {
             }`}
           >
             <span
-              className={`absolute left-0.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border shadow-sm transition-transform ${
+              className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border shadow-sm transition-all ${
                 ai.enabled
-                  ? 'translate-x-[18px] bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
-                  : 'translate-x-0 bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
+                  ? 'right-0.5 left-auto bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
+                  : 'left-0.5 right-auto bg-[var(--bg-overlay-strong)] border-[var(--ui-segment-border)]'
               }`}
             />
           </button>
