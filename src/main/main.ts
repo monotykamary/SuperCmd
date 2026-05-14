@@ -59,7 +59,7 @@ import {
   getPopularExtensions,
   getExtensionDetails,
 } from './extension-api';
-import { getExtensionBundle, buildAllCommands, discoverInstalledExtensionCommands, getInstalledExtensionsSettingsSchema } from './extension-runner';
+import { getExtensionBundle, buildAllCommands, discoverInstalledExtensionCommands, getInstalledExtensionsSettingsSchema, stopBuildWorker } from './extension-runner';
 import {
   startClipboardMonitor,
   stopClipboardMonitor,
@@ -10359,7 +10359,6 @@ async function runCommandById(commandId: string, source: 'launcher' | 'hotkey' |
     if (!parsedPath) return false;
     const { extensionName: extName, commandName: cmdName } = parsedPath;
     try {
-      await new Promise<void>(r => setImmediate(r));
       const bundle = await buildLaunchBundle({
         extensionName: extName,
         commandName: cmdName,
@@ -17968,6 +17967,7 @@ app.on('will-quit', () => {
   stopEmojiTriggerMonitor();
   stopFileSearchIndexing();
   try { soulverCalculator.shutdown(); } catch {}
+  stopBuildWorker();
   if (appTray) {
     try { appTray.destroy(); } catch {}
     appTray = null;

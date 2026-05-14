@@ -1,16 +1,18 @@
 /**
- * Re-entrancy Guard & Event Loop Yielding Tests
+ * Re-entrancy Guard & Timeout Tests
  *
- * These tests simulate the root cause of a main-process hang where
- * the Electron main thread entered a re-entrant event loop:
+ * The main-process hang was caused by a re-entrant event loop:
  * V8 compilation → tick_callback → uv_run processed fs.stat completions,
  * which triggered more JS callbacks → more compilation, creating an infinite
  * synchronous busy-loop. The outer Cocoa event loop never regained control.
  *
- * These tests verify that:
- * 1. The re-entrancy guard prevents nested calls from blocking the event loop
- * 2. Yield points (setImmediate) break long synchronous work into chunks
- * 3. Timeout guards prevent bundle loading from hanging indefinitely
+ * Primary fix: esbuild now runs in a forked child process (build-worker.ts)
+ * with its own event loop, so it cannot re-enter the main process.
+ *
+ * Defense-in-depth (still tested here):
+ * 1. The re-entrancy guard prevents nested getExtensionBundle calls
+ * 2. Timeout guards prevent bundle loading from hanging indefinitely
+ * 3. Yield points break long synchronous work into chunks
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

@@ -71,6 +71,7 @@
     "asarUnpack": [
       "dist/native/**",
       "dist/main/window-manager-worker.js",
+      "dist/main/build-worker.js",
       "node_modules/esbuild/**",
       "node_modules/@esbuild/**",
       "node_modules/node-edge-tts/**",
