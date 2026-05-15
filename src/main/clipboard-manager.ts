@@ -586,45 +586,59 @@ function getClipboardImageFingerprint(): {
 } {
   try {
     const formats = clipboard.availableFormats();
-    if (!formats.some(looksLikeClipboardImageFormat)) return { fingerprint: '' };
 
-    const gifBuf = readClipboardBufferForFormats(formats, ['com.compuserve.gif', 'image/gif']);
-    if (gifBuf && gifBuf.length > 4 &&
-        gifBuf[0] === 0x47 && gifBuf[1] === 0x49 && gifBuf[2] === 0x46) {
-      return {
-        fingerprint: buildImageFingerprint('gif', gifBuf),
-        rawGifData: gifBuf,
-      };
+    // Fast path: try to read raw format bytes for fingerprinting.
+    // This avoids calling toPNG() on every poll tick for common formats.
+    if (formats.some(looksLikeClipboardImageFormat)) {
+      const gifBuf = readClipboardBufferForFormats(formats, ['com.compuserve.gif', 'image/gif']);
+      if (gifBuf && gifBuf.length > 4 &&
+          gifBuf[0] === 0x47 && gifBuf[1] === 0x49 && gifBuf[2] === 0x46) {
+        return {
+          fingerprint: buildImageFingerprint('gif', gifBuf),
+          rawGifData: gifBuf,
+        };
+      }
+
+      const pngBuf = readClipboardBufferForFormats(formats, ['public.png', 'image/png']);
+      if (pngBuf && pngBuf.length > 8) {
+        return { fingerprint: buildImageFingerprint('png', pngBuf) };
+      }
+
+      const jpegBuf = readClipboardBufferForFormats(formats, ['public.jpeg', 'public.jpg', 'image/jpeg', 'image/jpg']);
+      if (jpegBuf && jpegBuf.length > 8) {
+        return { fingerprint: buildImageFingerprint('jpeg', jpegBuf) };
+      }
+
+      const webpBuf = readClipboardBufferForFormats(formats, ['org.webmproject.webp', 'image/webp']);
+      if (webpBuf && webpBuf.length > 12) {
+        return { fingerprint: buildImageFingerprint('webp', webpBuf) };
+      }
+
+      const heicBuf = readClipboardBufferForFormats(formats, ['public.heic', 'public.heif', 'image/heic', 'image/heif']);
+      if (heicBuf && heicBuf.length > 12) {
+        return { fingerprint: buildImageFingerprint('heic', heicBuf) };
+      }
+
+      const tiffBuf = readClipboardBufferForFormats(formats, ['public.tiff', 'image/tiff']);
+      if (tiffBuf && tiffBuf.length > 8) {
+        return { fingerprint: buildImageFingerprint('tiff', tiffBuf) };
+      }
+
+      // Last-resort for format names we know are image-like but don't have
+      // buffer readers for yet (e.g. SVG, BMP, uncommon UTIs).
+      const knownImage = clipboard.readImage();
+      if (!knownImage.isEmpty()) {
+        return {
+          fingerprint: buildImageFingerprint('native', knownImage.toPNG()),
+          fallbackImage: knownImage,
+        };
+      }
     }
 
-    const pngBuf = readClipboardBufferForFormats(formats, ['public.png', 'image/png']);
-    if (pngBuf && pngBuf.length > 8) {
-      return { fingerprint: buildImageFingerprint('png', pngBuf) };
-    }
-
-    const jpegBuf = readClipboardBufferForFormats(formats, ['public.jpeg', 'public.jpg', 'image/jpeg', 'image/jpg']);
-    if (jpegBuf && jpegBuf.length > 8) {
-      return { fingerprint: buildImageFingerprint('jpeg', jpegBuf) };
-    }
-
-    const webpBuf = readClipboardBufferForFormats(formats, ['org.webmproject.webp', 'image/webp']);
-    if (webpBuf && webpBuf.length > 12) {
-      return { fingerprint: buildImageFingerprint('webp', webpBuf) };
-    }
-
-    const heicBuf = readClipboardBufferForFormats(formats, ['public.heic', 'public.heif', 'image/heic', 'image/heif']);
-    if (heicBuf && heicBuf.length > 12) {
-      return { fingerprint: buildImageFingerprint('heic', heicBuf) };
-    }
-
-    const tiffBuf = readClipboardBufferForFormats(formats, ['public.tiff', 'image/tiff']);
-    if (tiffBuf && tiffBuf.length > 8) {
-      return { fingerprint: buildImageFingerprint('tiff', tiffBuf) };
-    }
-
-    // Last-resort compatibility for Electron/platform format names we do not
-    // know yet. This keeps the CPU fix for common steady-state image polling
-    // while still preserving image history when Electron can decode the image.
+    // Universal fallback: try nativeImage regardless of format-name matching.
+    // This catches edge cases where Electron exposes non-standard format names
+    // (e.g. dynamic UTIs like dyn.ah62d4rv4gu8yc6c, legacy NSPasteboard types)
+    // that lookLikeClipboardImageFormat doesn't recognize.
     const image = clipboard.readImage();
     if (!image.isEmpty()) {
       return {
